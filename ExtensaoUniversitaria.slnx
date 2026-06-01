@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ExtensaoUniversitaria.BlazorApp/ExtensaoUniversitaria.BlazorApp.csproj" />
+  <Project Path="ExtensaoUniversitaria.ConsoleApp/ExtensaoUniversitaria.ConsoleApp.csproj" />
+  <Project Path="ExtensaoUniversitaria.Data/ExtensaoUniversitaria.Data.csproj" />
+  <Project Path="ExtensaoUniversitaria.Domain/ExtensaoUniversitaria.Domain.csproj" />
+</Solution>
