@@ -1,0 +1,188 @@
+@page "/projetos"
+@using ExtensaoUniversitaria.Data.Repositories
+@using ExtensaoUniversitaria.Domain
+@inject ProjetoRepository ProjetoRepo
+
+<h3>Projetos</h3>
+
+<div>
+    <input placeholder="Buscar por área temática" @bind="areaFiltro" />
+    <select @bind="statusFiltroString">
+        <option value="">Todos</option>
+        @foreach (var s in Enum.GetValues(typeof(StatusProjeto)).Cast<StatusProjeto>())
+        {
+            <option value="@s">@s</option>
+        }
+    </select>
+    <button @onclick="AplicarFiltros">Filtrar</button>
+    <button @onclick="CarregarTodos">Limpar</button>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Título</th>
+            <th>Descrição</th>
+            <th>Coordenador</th>
+            <th>Status</th>
+            <th>Participantes</th>
+            <th>Atividades</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var p in projetos)
+        {
+            <tr>
+                <td>@p.Titulo</td>
+                <td>@p.Descricao</td>
+                <td>@p.Coordenador.Nome</td>
+                <td>@p.Status</td>
+                <td>@p.Participantes.Count</td>
+                <td>@p.Atividades.Count</td>
+                <td>
+                    <button @onclick="() => MostrarIncluirEstudante(p.Id)">Incluir estudante</button>
+                    <button @onclick="() => MostrarRegistrarAtividade(p.Id)">Registrar atividade</button>
+                </td>
+            </tr>
+            if (mostrarIncluirEstudanteId == p.Id)
+            {
+                <tr>
+                    <td colspan="7">
+                        <input placeholder="Nome do estudante" @bind="nomeEstudante" />
+                        <button @onclick="() => IncluirEstudante(p.Id)">Salvar</button>
+                        <button @onclick="FecharIncluirEstudante">Cancelar</button>
+                    </td>
+                </tr>
+            }
+            if (mostrarRegistrarAtividadeId == p.Id)
+            {
+                <tr>
+                    <td colspan="7">
+                        <input placeholder="Título da atividade" @bind="tituloAtividade" />
+                        <input placeholder="Descrição da atividade" @bind="descricaoAtividade" />
+                        <select @bind="situacaoAtividade">
+                            @foreach (var s in Enum.GetValues(typeof(SituacaoAtividade)).Cast<SituacaoAtividade>())
+                            {
+                                <option value="@s">@s</option>
+                            }
+                        </select>
+                        <button @onclick="() => RegistrarAtividade(p.Id)">Salvar</button>
+                        <button @onclick="FecharRegistrarAtividade">Cancelar</button>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<h4>Novo Projeto</h4>
+<div>
+    <input placeholder="Título" @bind="novoTitulo" />
+    <input placeholder="Área temática" @bind="novaArea" />
+    <input placeholder="Período" @bind="novoPeriodo" />
+    <input placeholder="Carga horária" @bind="novaCarga" />
+    <input placeholder="Nome do coordenador" @bind="novoCoordenador" />
+    <button @onclick="CriarProjeto">Criar</button>
+</div>
+
+@code {
+    private List<Projeto> projetos = new();
+    private string areaFiltro = string.Empty;
+    private string statusFiltroString = string.Empty;
+    private Guid? mostrarIncluirEstudanteId;
+    private Guid? mostrarRegistrarAtividadeId;
+    private string nomeEstudante = string.Empty;
+    private string tituloAtividade = string.Empty;
+    private string descricaoAtividade = string.Empty;
+    private SituacaoAtividade situacaoAtividade = SituacaoAtividade.Pendente;
+    private string novoTitulo = string.Empty;
+    private string novaArea = string.Empty;
+    private string novoPeriodo = string.Empty;
+    private string novaCarga = string.Empty;
+    private string novoCoordenador = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        CarregarTodos();
+    }
+
+    private void CarregarTodos()
+    {
+        projetos = ProjetoRepo.ListarTodos().ToList();
+        areaFiltro = string.Empty;
+        statusFiltroString = string.Empty;
+    }
+
+    private void AplicarFiltros()
+    {
+        IEnumerable<Projeto> resultado = ProjetoRepo.ListarTodos();
+        if (!string.IsNullOrWhiteSpace(areaFiltro))
+        {
+            resultado = ProjetoRepo.BuscarPorArea(areaFiltro);
+        }
+        if (!string.IsNullOrWhiteSpace(statusFiltroString))
+        {
+            if (Enum.TryParse<StatusProjeto>(statusFiltroString, out var st))
+            {
+                resultado = resultado.Where(p => p.Status == st);
+            }
+        }
+        projetos = resultado.ToList();
+    }
+
+    private void MostrarIncluirEstudante(Guid projetoId)
+    {
+        mostrarIncluirEstudanteId = projetoId;
+        nomeEstudante = string.Empty;
+    }
+
+    private void FecharIncluirEstudante()
+    {
+        mostrarIncluirEstudanteId = null;
+    }
+
+    private void IncluirEstudante(Guid projetoId)
+    {
+        var p = ProjetoRepo.ObterPorId(projetoId);
+        if (p == null) return;
+        var estudante = new Estudante(nomeEstudante);
+        p.IncluirParticipante(estudante);
+        FecharIncluirEstudante();
+        CarregarTodos();
+    }
+
+    private void MostrarRegistrarAtividade(Guid projetoId)
+    {
+        mostrarRegistrarAtividadeId = projetoId;
+        tituloAtividade = string.Empty;
+        descricaoAtividade = string.Empty;
+        situacaoAtividade = SituacaoAtividade.Pendente;
+    }
+
+    private void FecharRegistrarAtividade()
+    {
+        mostrarRegistrarAtividadeId = null;
+    }
+
+    private void RegistrarAtividade(Guid projetoId)
+    {
+        var p = ProjetoRepo.ObterPorId(projetoId);
+        if (p == null) return;
+        var atividade = new Atividade(tituloAtividade, descricaoAtividade);
+        atividade.AtualizarSituacao(situacaoAtividade);
+        p.RegistrarAtividade(atividade);
+        FecharRegistrarAtividade();
+        CarregarTodos();
+    }
+
+    private void CriarProjeto()
+    {
+        var coord = new Coordenador(novoCoordenador);
+        var descricao = $"Área: {novaArea}; Período: {novoPeriodo}; Carga: {novaCarga}";
+        var p = new Projeto(novoTitulo, descricao, coord);
+        ProjetoRepo.Adicionar(p);
+        novoTitulo = novaArea = novoPeriodo = novaCarga = novoCoordenador = string.Empty;
+        CarregarTodos();
+    }
+}
